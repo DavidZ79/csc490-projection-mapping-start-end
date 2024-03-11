@@ -1,26 +1,5 @@
-# import speech_recognition as sr
-#
-# def detect_speech(audio_file):
-#     recognizer = sr.Recognizer()
-#     with sr.AudioFile(audio_file) as source:
-#         audio_data = recognizer.record(source)  # Read the entire audio file
-#
-#     try:
-#         # Recognize speech using the default API key
-#         text = recognizer.recognize_google(audio_data)
-#         print("Transcription:")
-#         print(text)
-#     except sr.UnknownValueError:
-#         print("Google Speech Recognition could not understand the audio")
-#     except sr.RequestError as e:
-#         print(f"Could not request results from Google Speech Recognition service; {e}")
-#
-# if __name__ == "__main__":
-#     audio_file = input("Enter the path to the audio file: ")
-#     detect_speech(audio_file)
-
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from pydub.silence import *  # docs: https://github.com/jiaaro/pydub/blob/master/pydub/silence.py
 import speech_recognition as sr
 import io
 
@@ -28,16 +7,17 @@ import io
 def detect_voice_segments(audio_file):
     audio = AudioSegment.from_file(audio_file)  # load audio file into AudioSegment obj
 
-    # split audio into segments based on silence
     segments = split_on_silence(audio, min_silence_len=500, silence_thresh=-50)
 
+    # 2d array: inner list is [start, end] in ms
+    start_end_times = detect_nonsilent(audio, min_silence_len=500, silence_thresh=-50)
+
+    # return list of tuples, each tuple represents a segment (start, end, segment audio object)
+    num_of_segments = len(segments)  # len(segments) = len(start_end_times)
     voice_segments = []
-    start_time = 0
-    for segment in segments:
-        if len(segment) > 0:  # Only consider segments with non-zero length
-            end_time = start_time + len(segment) / 1000  # convert ms to s
-            voice_segments.append((start_time, end_time, segment))
-            start_time = end_time
+    for i in range(num_of_segments):
+        # divide by 1000 for ms -> s
+        voice_segments.append((start_end_times[i][0] / 1000, start_end_times[i][1] / 1000, segments[i]))
 
     return voice_segments
 
